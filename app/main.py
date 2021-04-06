@@ -3,7 +3,7 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth.routes import router as auth_router
+from .api.routes import router as api_router
 
 app = FastAPI()
 
@@ -15,4 +15,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/auth")
+app.include_router(api_router, prefix="/api")
