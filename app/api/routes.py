@@ -9,7 +9,7 @@ from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision
 from .helpers import generate_token, create_access_token
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 
@@ -113,5 +113,11 @@ def update_abstract(
     sumbit_decision_to_db(db, user.login, decision.revid, decision.pmid, decision.decision)
     return {"didit": True}
 
+@router.get("/get_review_update/{revid}")
+def get_review_update(
+               revid: str,               
+               db: Session = Depends(get_db),):    
+    update_text = get_review_status_text(db, revid)
+    return update_text
 
 

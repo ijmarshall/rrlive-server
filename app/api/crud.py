@@ -51,6 +51,48 @@ def get_screenlist_from_db(engine, revid: str, user_id: str) -> list:
     toscreen['citation'] = cites
     return toscreen.to_dict('records')
 
+def get_review_status_text(db, revid: str) -> list:
+    live_update_studies = pd.read_sql("""select pm.pmid, pm.year, pm.ti, pm.ab, pm.pm_data->'authors' as authors,
+            pm.pm_data->'journal' as journal, pa.num_randomized, pa.prob_low_rob, pa.effect, decision from manscreen as ms, pubmed as pm,
+            pubmed_annotations as pa where in_live_update=true and pm.pmid=ms.pmid and pm.pmid=pa.pmid;""",
+            db.connection(), params={"revid": revid})
+    cites = [get_cite(r.authors, r.journal, r.year) for (i, r) in live_update_studies.iterrows()]
+    live_update_studies.drop("authors", axis=1, inplace=True)
+    live_update_studies['citation'] = cites
+
+    num_studies_total = live_update_studies.shape[0]
+
+    if num_studies_total == 0:
+        return "Trialstreamer is monitoring PubMed live for any new potentially relevant studies. So far no relevant studies have been identified"
+    num_studies_to_screen = live_update_studies.decision.isna().sum()
+    num_studies_screened = num_studies_total - num_studies_to_screen
+
+    if num_studies_screened == 0:
+        return f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appear
+    eligible to include. These studies are awaiting manual review"""
+
+    studies_to_include = live_update_studies[live_update_studies.decision==True]
+    num_studies_to_include = studies_to_include.shape[0]
+
+    if num_studies_to_include == 0:
+        return f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appeared
+    eligible to include. These studies have been reviewed by the review authors, and none meet the inclusion criteria. """       
+
+
+    template = f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appear
+    eligible to include. {num_studies_to_screen} are waiting to be screened by the review authors. {num_studies_screened}
+    have been manually reviewed, and {num_studies_to_include} of these were judged relevant and are due to be included. 
+    """
+
+    num_studies_with_ss = (~studies_to_include.num_randomized.isna()).sum()
+    if num_studies_with_ss == 0:
+        template += "We couldn't automatically extract the sample size."
+    else:
+        ss_total = studies_to_include.num_randomized.dropna().sum()
+        template += f"We were able to extract the sample size from {num_studies_with_ss} studies, which included a total of {int(ss_total):,} participants."
+
+    return template
+
 
 def get_cite(authors, journal, year) -> str:
     if len(authors) >= 1 and authors[0]['LastName']:
