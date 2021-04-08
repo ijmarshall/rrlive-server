@@ -63,33 +63,34 @@ def get_review_status_text(db, revid: str) -> list:
     num_studies_total = live_update_studies.shape[0]
 
     if num_studies_total == 0:
-        return "Trialstreamer is monitoring PubMed live for any new potentially relevant studies. So far no relevant studies have been identified"
+        return ("Trialstreamer is monitoring PubMed live for any new potentially relevant studies."
+                "So far no relevant studies have been identified")
     num_studies_to_screen = live_update_studies.decision.isna().sum()
     num_studies_screened = num_studies_total - num_studies_to_screen
 
     if num_studies_screened == 0:
-        return f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appear
-    eligible to include. These studies are awaiting manual review"""
+        return (f"Since the review was published, Trialstreamer has identified {num_studies_total} new studies"
+                " which appear eligible to include. These studies are awaiting manual review")
 
     studies_to_include = live_update_studies[live_update_studies.decision==True]
     num_studies_to_include = studies_to_include.shape[0]
 
     if num_studies_to_include == 0:
-        return f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appeared
-    eligible to include. These studies have been reviewed by the review authors, and none meet the inclusion criteria. """       
+        return (f"Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appeared"
+                "  eligible to include. These studies have been reviewed by the review authors, and none meet the inclusion criteria.")
 
 
-    template = f"""Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appear
-    eligible to include. {num_studies_to_screen} are waiting to be screened by the review authors. {num_studies_screened}
-    have been manually reviewed, and {num_studies_to_include} of these were judged relevant and are due to be included. 
-    """
+    template = (f"Since the review was published, Trialstreamer has identified {num_studies_total} new studies which appear"
+                f" eligible to include. {num_studies_to_screen} are waiting to be screened by the review authors. {num_studies_screened}"
+                f" have been manually reviewed, and {num_studies_to_include} of these were judged relevant and are due to be included. ")
+    
 
     num_studies_with_ss = (~studies_to_include.num_randomized.isna()).sum()
     if num_studies_with_ss == 0:
-        template += "We couldn't automatically extract the sample size."
+        template += " We couldn't automatically extract the sample size."
     else:
         ss_total = studies_to_include.num_randomized.dropna().sum()
-        template += f"We were able to extract the sample size from {num_studies_with_ss} studies, which included a total of {int(ss_total):,} participants."
+        template += f" We were able to extract the sample size from {num_studies_with_ss} studies, which included a total of {int(ss_total):,} participants."
 
     return template
 
