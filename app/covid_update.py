@@ -101,7 +101,7 @@ def main():
 
     man = updates_filtered[updates_filtered.decision==True].drop(['decision', 'score'], axis=1)
     man['decision'] = None
-    man['userid'] = None
+    man['login'] = None
     update_manscreen_table(man)
     update_last_updated()
 
