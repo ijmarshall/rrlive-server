@@ -102,6 +102,7 @@ def main():
     man = updates_filtered[updates_filtered.decision==True].drop(['decision', 'score'], axis=1)
     man['decision'] = None
     man['userid'] = None
+    man['in_live_update'] = True # by default new studies are included up until they are incorporated in the review
     update_manscreen_table(man)
     update_last_updated()
 
