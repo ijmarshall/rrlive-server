@@ -3,13 +3,15 @@ from urllib.parse import urlencode, parse_qsl
 
 import httpx
 from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi.responses import StreamingResponse
+import io
 
 from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision
 from .helpers import generate_token, create_access_token
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 
@@ -47,6 +49,8 @@ async def verify_authorization(
     async with httpx.AsyncClient() as client:
         token_request = await client.post(TOKEN_URL, params=params)
         response: Dict[bytes, bytes] = dict(parse_qsl(token_request.content))
+        print("RESPONSE:")
+        print(response)
         github_token = response[b"access_token"].decode("utf-8")
         github_header = {"Authorization": f"token {github_token}"}
         user_request = await client.get(USER_URL, headers=github_header)
@@ -120,4 +124,22 @@ def get_review_update(
     update_text = get_review_status_text(db, revid)
     return update_text
 
+@router.get("/get_review_included_studies/{revid}")
+def get_review_included_studies(
+               revid: str,               
+               db: Session = Depends(get_db),):    
+    update_text = get_review_status_text(db, revid)
+    stream = io.StringIO()
+
+    df = get_review_included_studies_df(db, revid)
+
+    df.to_csv(stream, index = False)
+
+    response = StreamingResponse(iter([stream.getvalue()]),
+                        media_type="text/csv"
+    )
+
+    response.headers["Content-Disposition"] = "attachment; filename=included_studies.csv"
+
+    return response
 
