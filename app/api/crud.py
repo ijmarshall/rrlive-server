@@ -115,7 +115,7 @@ def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
 
 
     db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
-                        FROM permissions WHERE manscreen.revid='covax' AND manscreen.pmid=%(pmid)s AND
+                        FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
                         permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
                         ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
     db.commit()
