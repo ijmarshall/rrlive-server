@@ -24,8 +24,8 @@ class GithubUser(BaseModel):
 class User(BaseModel):
     id: int
     login: str
-    name: str
-    email: str = None
+    name: Optional[str] = None
+    email: Optional[str] = None
 
     class Config:
         orm_mode = True
