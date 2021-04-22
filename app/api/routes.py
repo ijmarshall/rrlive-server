@@ -46,6 +46,8 @@ async def verify_authorization(
         "state": body.state,
     }
 
+
+
     async with httpx.AsyncClient() as client:
         token_request = await client.post(TOKEN_URL, params=params)
         response: Dict[bytes, bytes] = dict(parse_qsl(token_request.content))
@@ -54,6 +56,7 @@ async def verify_authorization(
         github_token = response[b"access_token"].decode("utf-8")
         github_header = {"Authorization": f"token {github_token}"}
         user_request = await client.get(USER_URL, headers=github_header)
+        print(user_request.json())
         github_user = GithubUser(**user_request.json())
     db_user = get_user_by_login(db, github_user.login)
 
