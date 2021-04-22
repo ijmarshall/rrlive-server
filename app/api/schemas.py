@@ -15,10 +15,10 @@ class AuthorizationResponse(BaseModel):
 class GithubUser(BaseModel):
     login: str
     name: str = None
-    company: str = None
-    location: str = None
-    email: str = None
-    avatar_url: str = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    email: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class User(BaseModel):
