@@ -95,6 +95,32 @@ def get_review_status_text(db, revid: str) -> list:
     return template
 
 
+def generate_summary_of_new_evidence(db, revid: str) -> str: 
+    
+    import requests
+    import json
+    import time
+
+    live_update_studies = pd.read_sql("""select pm.pmid, pm.year, pm.ti, pm.ab, pm.pm_data->'authors' as authors,
+            pm.pm_data->'journal' as journal, pa.num_randomized, pa.prob_low_rob, pa.effect, decision from manscreen as ms, pubmed as pm,
+            pubmed_annotations as pa where in_live_update=true and pm.pmid=ms.pmid and pm.pmid=pa.pmid;""",
+            db.connection(), params={"revid": revid})
+
+    
+    articles = []
+
+    for (idx, citation) in live_update_studies.iterrows():
+        articles.append({"ti": citation.ti, "abs": citation.ab})
+
+   
+    headers = {'Content-Type': 'application/json', 'Accept':'application/json'}
+    base_url="http://127.0.0.1:5000/"
+    #import pdb; pdb.set_trace()
+    summary = requests.post(base_url+'summarize', json=json.dumps({"articles":articles}), headers=headers)
+    return summary.text
+
+
+
 def get_cite(authors, journal, year) -> str:
     if len(authors) >= 1 and authors[0]['LastName']:
         return f"{authors[0]['LastName']}{' et al.' if len(authors) > 1 else ''}, {journal}. {year}"
