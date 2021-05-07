@@ -2,6 +2,7 @@ from typing import List, Optional
 import pandas as pd
 from sqlalchemy.orm import Session
 
+
 from .schemas import GithubUser
 from .models import User
 
@@ -51,10 +52,18 @@ def get_screenlist_from_db(engine, revid: str, user_id: str) -> list:
     toscreen['citation'] = cites
     return toscreen.to_dict('records')
 
+def get_review_included_studies_df(db, revid: str) -> pd.DataFrame:
+    included_studies_df = pd.read_sql("""select pm.pmid, pm.year, pm.ti, pm.ab, pm.pm_data->'authors' as authors,
+            pm.pm_data->'journal' as journal from manscreen as ms, pubmed as pm
+            where decision=true and ms.revid=%(revid)s login!='init' and pm.pmid=ms.pmid;""",
+            db.connection(), params={"revid": revid})
+    return included_studies_df
+
+
 def get_review_status_text(db, revid: str) -> list:
     live_update_studies = pd.read_sql("""select pm.pmid, pm.year, pm.ti, pm.ab, pm.pm_data->'authors' as authors,
             pm.pm_data->'journal' as journal, pa.num_randomized, pa.prob_low_rob, pa.effect, decision from manscreen as ms, pubmed as pm,
-            pubmed_annotations as pa where in_live_update=true and pm.pmid=ms.pmid and pm.pmid=pa.pmid;""",
+            pubmed_annotations as pa where in_live_update=true and ms.revid=%(revid)s and pm.pmid=ms.pmid and pm.pmid=pa.pmid;""",
             db.connection(), params={"revid": revid})
     cites = [get_cite(r.authors, r.journal, r.year) for (i, r) in live_update_studies.iterrows()]
     live_update_studies.drop("authors", axis=1, inplace=True)
@@ -132,7 +141,7 @@ def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
 
 
     db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
-                        FROM permissions WHERE manscreen.revid='covax' AND manscreen.pmid=%(pmid)s AND
+                        FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
                         permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
                         ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
     db.commit()

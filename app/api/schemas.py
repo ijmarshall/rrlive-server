@@ -14,18 +14,18 @@ class AuthorizationResponse(BaseModel):
 
 class GithubUser(BaseModel):
     login: str
-    name: str
-    company: str = None
-    location: str = None
-    email: str = None
-    avatar_url: str = None
+    name: str = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    email: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class User(BaseModel):
     id: int
     login: str
-    name: str
-    email: str = None
+    name: Optional[str] = None
+    email: Optional[str] = None
 
     class Config:
         orm_mode = True
