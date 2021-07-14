@@ -3,7 +3,7 @@ from urllib.parse import urlencode, parse_qsl
 
 import httpx
 from fastapi import APIRouter, Depends, status, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import io
 
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from .helpers import generate_token, create_access_token
 from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence
 from .dependencies import get_user_from_header
 from .models import User as DbUser
+from fastapi.encoders import jsonable_encoder
 
 
 LOGIN_URL = "https://github.com/login/oauth/authorize"
@@ -151,4 +152,11 @@ def get_review_included_studies(
     response.headers["Content-Disposition"] = "attachment; filename=included_studies.csv"
 
     return response
+
+@router.get("/get_autocomplete_tags/")
+def get_autocomplete_tags(
+                q: str,):
+    # hardcoding for just testing purposes
+    response = {"data": [{"count":504,"cui":"C0439844","cui_pico_display":"Covered [interventions]","cui_str":"Covered (qualifier value)","field":"interventions"},{"count":332,"cui":"C0439844","cui_pico_display":"Covered [population]","cui_str":"Covered (qualifier value)","field":"population"},{"count":265,"cui":"C0439844","cui_pico_display":"Covered [outcomes]","cui_str":"Covered (qualifier value)","field":"outcomes"}]}
+    return JSONResponse(content=response)
 
