@@ -9,7 +9,7 @@ import io
 from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
-from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision
+from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData
 from .helpers import generate_token, create_access_token
 from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence
 from .dependencies import get_user_from_header
@@ -159,4 +159,8 @@ def get_autocomplete_tags(
     # hardcoding for just testing purposes
     response = {"data": [{"count":504,"cui":"C0439844","cui_pico_display":"Covered [interventions]","cui_str":"Covered (qualifier value)","field":"interventions"},{"count":332,"cui":"C0439844","cui_pico_display":"Covered [population]","cui_str":"Covered (qualifier value)","field":"population"},{"count":265,"cui":"C0439844","cui_pico_display":"Covered [outcomes]","cui_str":"Covered (qualifier value)","field":"outcomes"}]}
     return JSONResponse(content=response)
+
+@router.put("/create_live_summary/")
+def create_live_summary(live_summary: LiveSummaryData):
+    return live_summary
 

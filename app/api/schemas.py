@@ -67,5 +67,20 @@ class ScreeningDecision(BaseModel):
     revid: str
     decision: bool = None
 
+class Tag(BaseModel):
+    classes: str
+    text: str
+    cui: str
+
+class Document(BaseModel):
+    name: str
+    url: str
+
+class LiveSummaryData(BaseModel):
+    name: str
+    tags: List[Tag] = None
+    document: List[Document] = None
+    existing_summary: Optional[str] = None
+
 
 
