@@ -11,7 +11,7 @@ from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData
 from .helpers import generate_token, create_access_token
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
@@ -46,8 +46,6 @@ async def verify_authorization(
         "code": body.code,
         "state": body.state,
     }
-
-
 
     async with httpx.AsyncClient() as client:
         token_request = await client.post(TOKEN_URL, params=params)
@@ -153,14 +151,13 @@ def get_review_included_studies(
 
     return response
 
-@router.get("/get_autocomplete_tags/")
+@router.get("/get_autocomplete_tags")
 def get_autocomplete_tags(
                 q: str,):
-    # hardcoding for just testing purposes
-    response = {"data": [{"count":504,"cui":"C0439844","cui_pico_display":"Covered [interventions]","cui_str":"Covered (qualifier value)","field":"interventions"},{"count":332,"cui":"C0439844","cui_pico_display":"Covered [population]","cui_str":"Covered (qualifier value)","field":"population"},{"count":265,"cui":"C0439844","cui_pico_display":"Covered [outcomes]","cui_str":"Covered (qualifier value)","field":"outcomes"}]}
-    return JSONResponse(content=response)
+    tags = autocomplete(q)
+    return JSONResponse(content=tags)
 
-@router.put("/create_live_summary/")
+@router.put("/create_live_summary")
 def create_live_summary(live_summary: LiveSummaryData):
     return live_summary
 

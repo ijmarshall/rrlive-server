@@ -1,3 +1,4 @@
+import app
 from typing import List, Optional
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -6,6 +7,14 @@ from sqlalchemy.orm import Session
 from .schemas import GithubUser
 from .models import User
 
+import os
+import pickle
+
+# For Loading autocompleter data
+print("loading autocompleter")
+with open(os.path.join(app.DATA_ROOT, 'pico_cui_autocompleter.pck'), 'rb') as f:
+    pico_trie = pickle.load(f)
+print("done loading autocompleter")
 
 
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -145,4 +154,36 @@ def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
                         permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
                         ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
     db.commit()
+
+def autocomplete(q):
+    """
+    retrieves most likely MeSH PICO terms from data in pico_cui_autocompleter.pck
+    """
+
+    min_char = 3
+    max_return = 5
+    substr = q
+    if substr is None or not pico_trie.has_subtrie(substr):
+        return []
+
+    matches = pico_trie.itervalues(prefix=substr)
+
+    def flat_list(l):
+        return [item for sublist in l for item in sublist]
+
+    def dedupe(l):
+        encountered = set()
+        out = []
+        for r in l:
+            if r['cui_pico_display'] not in encountered:
+                encountered.add(r['cui_pico_display'])
+                out.append(r)
+        return out
+
+    if len(substr) < min_char:
+        # for short ones just return first 5
+        return dedupe(flat_list([r for _, r in zip(range(max_return), matches)]))
+    else:
+        # where we have enough chars, process and get top ranked
+        return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
     

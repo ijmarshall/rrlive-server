@@ -90,6 +90,7 @@ dependencies:
     - py==1.10.0
     - pyamqp==0.1.0.7
     - pydantic==1.8.1
+    - pygtrie==2.4.2
     - pyjwt==2.0.1
     - pyparsing==2.4.7
     - pytest==6.2.2
@@ -105,4 +106,4 @@ dependencies:
     - vine==5.0.0
     - watchgod==0.7
     - websockets==8.1
-prefix: /Users/iain/anaconda3/envs/rr2
+prefix: /Users/hyesunyun/opt/anaconda3/envs/rr2
