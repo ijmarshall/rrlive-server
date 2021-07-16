@@ -186,4 +186,11 @@ def autocomplete(q):
     else:
         # where we have enough chars, process and get top ranked
         return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
+
+def read_csv_and_save_to_db(path):
+    with open(path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            # should populate into list of models/schemas so we can save to db
+            print(row['pmid'], row['title'], row['abstract'], row['decision'])
     

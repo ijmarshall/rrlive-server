@@ -11,7 +11,18 @@ from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData
 from .helpers import generate_token, create_access_token
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete
+from .crud import 
+    get_user_by_login,
+    create_user,
+    get_user,
+    get_reviewlist_from_db,
+    get_screenlist_from_db,
+    sumbit_decision_to_db,
+    get_review_status_text,
+    get_review_included_studies_df,
+    generate_summary_of_new_evidence,
+    autocomplete,
+    read_csv_and_save_to_db
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
@@ -163,14 +174,12 @@ def get_autocomplete_tags(
 
 @router.put("/create_live_summary")
 def create_live_summary(live_summary: LiveSummaryData):
-
-    with open(live_summary.document[0].path, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            print(row['pmid'], row['title'], row['abstract'], row['decision'])
     # Save to revmeta table and return revid
+    
     # save to live_abstracts (summary)
+
     # save to manscreen or init_screen for csv
+    read_csv_and_save_to_db(live_summary.document[0].path)
     return live_summary
 
 @router.post("/upload_csv")
