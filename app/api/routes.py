@@ -2,7 +2,7 @@ from typing import Dict
 from urllib.parse import urlencode, parse_qsl
 
 import httpx
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
 from fastapi.responses import StreamingResponse, JSONResponse
 import io
 
@@ -16,6 +16,10 @@ from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
 
+import app
+import shutil
+import os
+import csv
 
 LOGIN_URL = "https://github.com/login/oauth/authorize"
 REDIRECT_URL = f"{settings.app_url}/auth/github"
@@ -159,5 +163,22 @@ def get_autocomplete_tags(
 
 @router.put("/create_live_summary")
 def create_live_summary(live_summary: LiveSummaryData):
+
+    with open(live_summary.document[0].path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            print(row['pmid'], row['title'], row['abstract'], row['decision'])
+    # Save to revmeta table and return revid
+    # save to live_abstracts (summary)
+    # save to manscreen or init_screen for csv
     return live_summary
+
+@router.post("/upload_csv")
+async def parse_csv(csv_file: UploadFile = File(...)):
+    file_location = os.path.join(app.CSV_ROOT, csv_file.filename)
+    with open(file_location, "wb+") as file_object:
+        shutil.copyfileobj(csv_file.file, file_object)
+    
+    return {"name": csv_file.filename, "path": file_location}
+
 

@@ -95,6 +95,7 @@ dependencies:
     - pyparsing==2.4.7
     - pytest==6.2.2
     - python-dotenv==0.15.0
+    - python-multipart==0.0.5
     - pyyaml==5.4.1
     - rfc3986==1.4.0
     - sniffio==1.2.0

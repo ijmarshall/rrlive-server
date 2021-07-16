@@ -74,7 +74,7 @@ class Tag(BaseModel):
 
 class Document(BaseModel):
     name: str
-    url: str
+    path: str
 
 class LiveSummaryData(BaseModel):
     name: str
