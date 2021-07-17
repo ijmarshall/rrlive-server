@@ -3,6 +3,8 @@ import string
 import random
 
 import jwt
+import os
+import base64
 
 from app.settings import settings
 
@@ -26,3 +28,8 @@ def create_access_token(*, data: User, exp: int = None) -> bytes:
         to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
     )
     return encoded_jwt
+
+def generate_rev_id(review_title):
+    unique_id = base64.urlsafe_b64encode(os.urandom(16))[:11].decode('utf-8')
+    from_review_title = review_title[:5].lower()
+    return from_review_title + unique_id

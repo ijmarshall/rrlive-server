@@ -80,7 +80,15 @@ class LiveSummaryData(BaseModel):
     name: str
     tags: List[Tag] = None
     document: List[Document] = None
-    existing_summary: Optional[str] = None
+    background: Optional[str] = None
+    methods: Optional[str] = None
+    results: Optional[str] = None
+    conclusion: Optional[str] = None
 
+class LiveSummarySections(BaseModel):
+    background: Optional[str] = None
+    methods: Optional[str] = None
+    results: Optional[str] = None
+    conclusion: Optional[str] = None
 
 
