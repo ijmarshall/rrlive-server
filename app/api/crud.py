@@ -191,57 +191,57 @@ def autocomplete(q):
         return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
 
 def submit_live_summary_to_db(db: Session, title: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
-    # need to place in transaction and commit thing? need to look into this
+    try:
 
-    # Insert to DB table revmeta
-    review_id = generate_rev_id(title)
-    now = datetime.now()
-    current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+        # Insert to DB table revmeta
+        review_id = generate_rev_id(title)
+        now = datetime.now()
+        current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    revmeta = RevMeta(
-        revid=review_id,
-        title=title,
-        last_updated=current_datetime,
-        keyword_filter=keyword_filter,
-    )
+        revmeta = RevMeta(
+            revid=review_id,
+            title=title,
+            last_updated=current_datetime,
+            keyword_filter=keyword_filter,
+        )
+        db.add(revmeta)
+        
 
-    db.add(revmeta)
-    db.commit()
-    db.refresh(revmeta)
+        # Insert to DB table live_abstracts
+        sections = [
+            LiveSummarySection(section="background", text=live_summary_sections.background, revid=review_id),
+            LiveSummarySection(section="methods", text=live_summary_sections.methods, revid=review_id),
+            LiveSummarySection(section="results", text=live_summary_sections.results, revid=review_id),
+            LiveSummarySection(section="conclusion", text=live_summary_sections.conclusion, revid=review_id),
+        ]
+        db.bulk_save_objects(sections)
 
-    # Insert to DB table live_abstracts
-    sections = [
-        LiveSummarySection(section="background", text=live_summary_sections.background, revid=review_id),
-        LiveSummarySection(section="methods", text=live_summary_sections.methods, revid=review_id),
-        LiveSummarySection(section="results", text=live_summary_sections.results, revid=review_id),
-        LiveSummarySection(section="conclusion", text=live_summary_sections.conclusion, revid=review_id),
-    ]
-    db.bulk_save_objects(sections)
-    db.commit()
+        # Insert to DB table init_screen
+        screen_records = []
+        # Read from saved csv and save to DB table init_screen
+        with open(csv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                # should populate into list of models/schemas so we can save to db
+                # add to list of MODEL
+                record = InitScreenRecord(
+                    revid=review_id,
+                    pmid=row['pmid'],
+                    ti=row['title'],
+                    ab=row['abstract'],
+                    decision=row['decision']
+                )
+                screen_records.append(record)
+        db.bulk_save_objects(screen_records)
 
-    # Insert to DB table init_screen
-    screen_records = []
-    # Read from saved csv and save to DB table init_screen
-    with open(csv_path, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            # should populate into list of models/schemas so we can save to db
-            # add to list of MODEL
-            record = InitScreenRecord(
-                revid=review_id,
-                pmid=row['pmid'],
-                ti=row['title'],
-                ab=row['abstract'],
-                decision=row['decision']
-            )
-            screen_records.append(record)
+        # Insert into DB table permissions
+        permission = Permission(login=user_login, revid=review_id)
+        db.add(permission)
 
-    db.bulk_save_objects(screen_records)
-    db.commit()
-
-    # Insert into DB table permissions
-    permission = Permission(login=user_login, revid=review_id)
-    db.add(permission)
-    db.commit()
-    db.refresh(permission)
+        db.commit()
+        db.refresh(revmeta)
+        db.refresh(permission)
+    except:
+        db.roolback()
+        raise
     

@@ -33,3 +33,7 @@ def generate_rev_id(review_title):
     unique_id = base64.urlsafe_b64encode(os.urandom(16))[:11].decode('utf-8')
     from_review_title = review_title[:5].lower()
     return from_review_title + unique_id
+
+
+def generate_uuid(length):
+    return base64.urlsafe_b64encode(os.urandom(16))[:length].decode('utf-8')

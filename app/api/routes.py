@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections
-from .helpers import generate_token, create_access_token
+from .helpers import generate_token, create_access_token, generate_uuid
 from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db
 from .dependencies import get_user_from_header
 from .models import User as DbUser
@@ -161,7 +161,7 @@ def get_autocomplete_tags(
     tags = autocomplete(q)
     return JSONResponse(content=tags)
 
-@router.put("/create_live_summary")
+@router.post("/create_live_summary")
 def create_live_summary(
                 live_summary: LiveSummaryData,
                 user: User = Depends(get_user_from_header),
@@ -171,32 +171,27 @@ def create_live_summary(
         raise HTTPException(status_code=404, detail="User not found")
 
     # tags (keyword_filters) to json
-    keyword_filter = live_summary.tags.json()
+    keyword_filter = [tag.json() for tag in live_summary.tags]
     print(keyword_filter)
 
     live_summary_sections = LiveSummarySections(
         background=live_summary.background,
         methods=live_summary.methods,
         results=live_summary.results,
-        conclusion=live_summary.conlusion
+        conclusion=live_summary.conclusion
     )
 
-    submit_live_summary_to_db(db, live_summary.name, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
-    # Save to revmeta table and return revid
-
-    # save to live_abstracts (summary)
-
-
-    # save to manscreen or init_screen for csv
-    read_csv_and_save_to_db(live_summary.document[0].path)
-    return live_summary
+    # submit_live_summary_to_db(db, live_summary.name, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
+    return {"success": True}
 
 @router.post("/upload_csv")
 async def upload_csv(csv_file: UploadFile = File(...)):
-    file_location = os.path.join(app.CSV_ROOT, csv_file.filename)
+    uuid = generate_uuid(5)
+    filename = uuid + csv_file.filename
+    file_location = os.path.join(app.CSV_ROOT, filename)
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(csv_file.file, file_object)
     
-    return {"name": csv_file.filename, "path": file_location}
+    return {"name": filename, "path": file_location}
 
 
