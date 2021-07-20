@@ -19,7 +19,7 @@ from fastapi.encoders import jsonable_encoder
 import app
 import shutil
 import os
-import csv
+import json
 
 LOGIN_URL = "https://github.com/login/oauth/authorize"
 REDIRECT_URL = f"{settings.app_url}/auth/github"
@@ -171,7 +171,7 @@ def create_live_summary(
         raise HTTPException(status_code=404, detail="User not found")
 
     # tags (keyword_filters) to json
-    keyword_filter = [tag.json() for tag in live_summary.tags]
+    keyword_filter = json.dumps([tag.json() for tag in live_summary.tags])
     print(keyword_filter)
 
     live_summary_sections = LiveSummarySections(
@@ -181,13 +181,13 @@ def create_live_summary(
         conclusion=live_summary.conclusion
     )
 
-    # submit_live_summary_to_db(db, live_summary.name, live_summary.date, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
+    submit_live_summary_to_db(db, live_summary.name, live_summary.date, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
     return {"success": True}
 
 @router.post("/upload_csv")
 async def upload_csv(csv_file: UploadFile = File(...)):
     uuid = generate_uuid(5)
-    filename = uuid + csv_file.filename
+    filename = uuid + "-" + csv_file.filename
     file_location = os.path.join(app.CSV_ROOT, filename)
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(csv_file.file, file_object)

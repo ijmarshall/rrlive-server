@@ -5,13 +5,12 @@ from sqlalchemy.orm import Session
 
 
 from .schemas import GithubUser, LiveSummarySections
-from .models import User, RevMeta, LiveSummarySection
+from .models import User, RevMeta, LiveSummarySection, InitScreenRecord, Permission
 from .helpers import generate_rev_id
 
 import os
 import pickle
-
-from datetime import datetime
+import csv
 
 # For Loading autocompleter data
 print("loading autocompleter")
@@ -195,7 +194,8 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
 
         # Insert to DB table revmeta
         review_id = generate_rev_id(title)
-        last_updated_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+        # Add time of default of all zeros
+        last_updated_date = date + " 00:00:00"
 
         revmeta = RevMeta(
             revid=review_id,
