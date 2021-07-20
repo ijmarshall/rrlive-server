@@ -190,18 +190,17 @@ def autocomplete(q):
         # where we have enough chars, process and get top ranked
         return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
 
-def submit_live_summary_to_db(db: Session, title: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
+def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
     try:
 
         # Insert to DB table revmeta
         review_id = generate_rev_id(title)
-        now = datetime.now()
-        current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+        last_updated_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
         revmeta = RevMeta(
             revid=review_id,
             title=title,
-            last_updated=current_datetime,
+            last_updated=last_updated_date,
             keyword_filter=keyword_filter,
         )
         db.add(revmeta)
@@ -242,6 +241,6 @@ def submit_live_summary_to_db(db: Session, title: str, keyword_filter: str, live
         db.refresh(revmeta)
         db.refresh(permission)
     except:
-        db.roolback()
+        db.rollback()
         raise
     

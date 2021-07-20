@@ -181,7 +181,7 @@ def create_live_summary(
         conclusion=live_summary.conclusion
     )
 
-    # submit_live_summary_to_db(db, live_summary.name, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
+    # submit_live_summary_to_db(db, live_summary.name, live_summary.date, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
     return {"success": True}
 
 @router.post("/upload_csv")

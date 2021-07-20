@@ -78,6 +78,7 @@ class Document(BaseModel):
 
 class LiveSummaryData(BaseModel):
     name: str
+    date: str
     tags: List[Tag] = None
     document: List[Document] = None
     background: Optional[str] = None
