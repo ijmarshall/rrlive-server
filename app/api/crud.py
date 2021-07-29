@@ -226,8 +226,8 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
                 record = InitScreenRecord(
                     revid=review_id,
                     pmid=row['pmid'],
-                    ti=row['title'],
-                    ab=row['abstract'],
+                    ti=row['ti'],
+                    ab=row['ab'],
                     decision=row['decision']
                 )
                 screen_records.append(record)
