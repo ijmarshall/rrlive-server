@@ -1,11 +1,22 @@
+import app
 from typing import List, Optional
 import pandas as pd
 from sqlalchemy.orm import Session
 
 
-from .schemas import GithubUser
-from .models import User
+from .schemas import GithubUser, LiveSummarySections
+from .models import User, RevMeta, LiveSummarySection, InitScreenRecord, Permission
+from .helpers import generate_rev_id
 
+import os
+import pickle
+import csv
+
+# For Loading autocompleter data
+print("loading autocompleter")
+with open(os.path.join(app.DATA_ROOT, 'pico_cui_autocompleter.pck'), 'rb') as f:
+    pico_trie = pickle.load(f)
+print("done loading autocompleter")
 
 
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -145,4 +156,91 @@ def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
                         permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
                         ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
     db.commit()
+
+def autocomplete(q):
+    """
+    retrieves most likely MeSH PICO terms from data in pico_cui_autocompleter.pck
+    """
+
+    min_char = 3
+    max_return = 5
+    substr = q
+    if substr is None or not pico_trie.has_subtrie(substr):
+        return []
+
+    matches = pico_trie.itervalues(prefix=substr)
+
+    def flat_list(l):
+        return [item for sublist in l for item in sublist]
+
+    def dedupe(l):
+        encountered = set()
+        out = []
+        for r in l:
+            if r['cui_pico_display'] not in encountered:
+                encountered.add(r['cui_pico_display'])
+                out.append(r)
+        return out
+
+    if len(substr) < min_char:
+        # for short ones just return first 5
+        return dedupe(flat_list([r for _, r in zip(range(max_return), matches)]))
+    else:
+        # where we have enough chars, process and get top ranked
+        return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
+
+def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
+    try:
+
+        # Insert to DB table revmeta
+        review_id = generate_rev_id(title)
+        # Add time of default of all zeros
+        last_updated_date = date + " 00:00:00"
+
+        revmeta = RevMeta(
+            revid=review_id,
+            title=title,
+            last_updated=last_updated_date,
+            keyword_filter=keyword_filter,
+        )
+        db.add(revmeta)
+        
+
+        # Insert to DB table live_abstracts
+        sections = [
+            LiveSummarySection(section="background", text=live_summary_sections.background, revid=review_id),
+            LiveSummarySection(section="methods", text=live_summary_sections.methods, revid=review_id),
+            LiveSummarySection(section="results", text=live_summary_sections.results, revid=review_id),
+            LiveSummarySection(section="conclusion", text=live_summary_sections.conclusion, revid=review_id),
+        ]
+        db.bulk_save_objects(sections)
+
+        # Insert to DB table init_screen
+        screen_records = []
+        # Read from saved csv and save to DB table init_screen
+        with open(csv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                # should populate into list of models/schemas so we can save to db
+                # add to list of MODEL
+                record = InitScreenRecord(
+                    revid=review_id,
+                    pmid=row['pmid'],
+                    ti=row['ti'],
+                    ab=row['ab'],
+                    decision=row['decision']
+                )
+                screen_records.append(record)
+        db.bulk_save_objects(screen_records)
+
+        # Insert into DB table permissions
+        permission = Permission(login=user_login, revid=review_id)
+        db.add(permission)
+
+        db.commit()
+        db.refresh(revmeta)
+        db.refresh(permission)
+    except:
+        db.rollback()
+        raise
     

@@ -2,19 +2,24 @@ from typing import Dict
 from urllib.parse import urlencode, parse_qsl
 
 import httpx
-from fastapi import APIRouter, Depends, status, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
+from fastapi.responses import StreamingResponse, JSONResponse
 import io
 
 from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
-from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision
-from .helpers import generate_token, create_access_token
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence
+from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections
+from .helpers import generate_token, create_access_token, generate_uuid
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db
 from .dependencies import get_user_from_header
 from .models import User as DbUser
+from fastapi.encoders import jsonable_encoder
 
+import app
+import shutil
+import os
+import json
 
 LOGIN_URL = "https://github.com/login/oauth/authorize"
 REDIRECT_URL = f"{settings.app_url}/auth/github"
@@ -45,8 +50,6 @@ async def verify_authorization(
         "code": body.code,
         "state": body.state,
     }
-
-
 
     async with httpx.AsyncClient() as client:
         token_request = await client.post(TOKEN_URL, params=params)
@@ -151,4 +154,44 @@ def get_review_included_studies(
     response.headers["Content-Disposition"] = "attachment; filename=included_studies.csv"
 
     return response
+
+@router.get("/get_autocomplete_tags")
+def get_autocomplete_tags(
+                q: str,):
+    tags = autocomplete(q)
+    return JSONResponse(content=tags)
+
+@router.post("/create_live_summary")
+def create_live_summary(
+                live_summary: LiveSummaryData,
+                user: User = Depends(get_user_from_header),
+                db: Session = Depends(get_db),):
+    db_user = get_user(db, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # tags (keyword_filters) to json
+    keyword_filter = json.dumps([tag.json() for tag in live_summary.tags])
+    print(keyword_filter)
+
+    live_summary_sections = LiveSummarySections(
+        background=live_summary.background,
+        methods=live_summary.methods,
+        results=live_summary.results,
+        conclusion=live_summary.conclusion
+    )
+
+    submit_live_summary_to_db(db, live_summary.name, live_summary.date, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
+    return {"success": True}
+
+@router.post("/upload_csv")
+async def upload_csv(csv_file: UploadFile = File(...)):
+    uuid = generate_uuid(5)
+    filename = uuid + "-" + csv_file.filename
+    file_location = os.path.join(app.CSV_ROOT, filename)
+    with open(file_location, "wb+") as file_object:
+        shutil.copyfileobj(csv_file.file, file_object)
+    
+    return {"name": filename, "path": file_location}
+
 
