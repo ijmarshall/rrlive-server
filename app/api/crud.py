@@ -47,9 +47,21 @@ def create_user(db: Session, github_user: GithubUser) -> User:
     return user
 
 def get_reviewlist_from_db(engine, user_id: str) -> list:
-    reviewmeta = pd.read_sql("select revmeta.* from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid;",
+    reviewmeta = pd.read_sql("select revmeta.revid, revmeta.title, revmeta.last_updated from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid ORDER BY permissions.revid;",
                              engine,
                              params = {"user_id": user_id})
+    revids = tuple(r.revid for (i, r) in reviewmeta.iterrows())
+
+    # Including the number of abstracts for each review for the dashboard
+    query = f"""
+    SELECT COUNT(1) as num_abstracts_to_screen from manscreen as ms, pubmed as pm,
+            pubmed_annotations as pa, permissions where permissions.revid IN {revids} and permissions.login='{user_id}'
+            and decision is null and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid
+            GROUP BY permissions.revid ORDER BY permissions.revid;
+    """
+    num_abstracts_to_screen = pd.read_sql_query(query, engine)
+    reviewmeta['num_abstracts_to_screen'] = num_abstracts_to_screen
+
     return reviewmeta.to_dict('records')
     
 def get_screenlist_from_db(engine, revid: str, user_id: str) -> list:

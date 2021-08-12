@@ -40,6 +40,7 @@ class Review(BaseModel):
     revid: str
     title: str
     last_updated: datetime.datetime
+    num_abstracts_to_screen: int
 
 class ReviewList(BaseModel):
     reviews: List[Review]
