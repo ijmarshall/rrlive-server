@@ -109,7 +109,8 @@ def get_screenlist(revid: str,
     db_user = get_user(db, user.id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"articles": get_screenlist_from_db(engine, revid, user.login)}
+    articles = get_screenlist_from_db(engine, revid, user.login)
+    return {"articles": articles}
 
 
 @router.post("/update_abstract/")
@@ -205,6 +206,13 @@ def get_reviewlist(revid: str,
         automated_narrative_summary=response_dict["automated_narrative_summary"]
     )
     return response
+
+@router.post("/update_user_information")
+def update_user_information(
+                user: User,
+                db: Session = Depends(get_db),):
+    update_user(db, user)
+    return {"success": True}
 
 @router.post("/upload_csv")
 async def upload_csv(csv_file: UploadFile = File(...)):

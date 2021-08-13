@@ -55,7 +55,7 @@ class Article(BaseModel):
     ab: str
     citation: str
     journal: str
-    num_randomized: str
+    num_randomized: str = None
     prob_low_rob: float
     effect: str
     decision: str = None
