@@ -22,7 +22,7 @@ class GithubUser(BaseModel):
 
 
 class User(BaseModel):
-    id: int
+    id: int = None
     login: str
     name: Optional[str] = None
     email: Optional[str] = None

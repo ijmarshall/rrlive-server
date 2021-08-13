@@ -46,27 +46,13 @@ def create_user(db: Session, github_user: GithubUser) -> User:
     db.refresh(user)
     return user
 
-# TODO: need to do update here instead of insert
-def update_user(db: Session, user_id: int, github_user: GithubUser):
-
-
-    # update_statement = bank.update()\
-    #                    .where(bank.c.money < 1000)\
-    #                    .values(money = bank.c.money + 50)
-
-    # db_engine.execute(update_statement)
-    # https://www.py4u.net/discuss/16522
-    user = User(
-        id=user_id,
-        login=github_user.login,
-        name=github_user.name,
-        email=github_user.email,
-    )
-
-    db.add(user)
+def update_user(db: Session, user_id: int, new_user_info: User) -> User:
+    user_from_db = db.query(User).filter_by(id=user_id).first()
+    user_from_db.name = new_user_info.name
+    user_from_db.email = new_user_info.email
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(user_from_db)
+    return user_from_db
 
 def get_reviewlist_from_db(engine, user_id: str) -> list:
     reviewmeta = pd.read_sql("select revmeta.revid, revmeta.title, revmeta.last_updated from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid ORDER BY permissions.revid;",

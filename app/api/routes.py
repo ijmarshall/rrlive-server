@@ -212,8 +212,8 @@ def update_user_information(
                 new_user_info: User,
                 user: User = Depends(get_user_from_header),
                 db: Session = Depends(get_db),):
-    update_user(db, user.id, new_user_info)
-    return {"success": True}
+    updated_user = update_user(db, user.id, new_user_info)
+    return {"success": True, "user": updated_user}
 
 
 @router.post("/upload_csv")
