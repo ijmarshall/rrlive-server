@@ -11,7 +11,7 @@ from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections
 from .helpers import generate_token, create_access_token, generate_uuid
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db, update_user
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
@@ -209,10 +209,12 @@ def get_reviewlist(revid: str,
 
 @router.post("/update_user_information")
 def update_user_information(
-                user: User,
+                new_user_info: User,
+                user: User = Depends(get_user_from_header),
                 db: Session = Depends(get_db),):
-    update_user(db, user)
+    update_user(db, user.id, new_user_info)
     return {"success": True}
+
 
 @router.post("/upload_csv")
 async def upload_csv(csv_file: UploadFile = File(...)):

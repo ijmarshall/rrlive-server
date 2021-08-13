@@ -47,8 +47,17 @@ def create_user(db: Session, github_user: GithubUser) -> User:
     return user
 
 # TODO: need to do update here instead of insert
-def update_user(db: Session, github_user: GithubUser):
+def update_user(db: Session, user_id: int, github_user: GithubUser):
+
+
+    # update_statement = bank.update()\
+    #                    .where(bank.c.money < 1000)\
+    #                    .values(money = bank.c.money + 50)
+
+    # db_engine.execute(update_statement)
+    # https://www.py4u.net/discuss/16522
     user = User(
+        id=user_id,
         login=github_user.login,
         name=github_user.name,
         email=github_user.email,
