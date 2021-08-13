@@ -11,7 +11,7 @@ from app.settings import settings
 from app.database import get_db, SQLBase, engine
 from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections
 from .helpers import generate_token, create_access_token, generate_uuid
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
@@ -183,6 +183,28 @@ def create_live_summary(
 
     submit_live_summary_to_db(db, live_summary.name, live_summary.date, keyword_filter, live_summary_sections, live_summary.document[0].path, user.login)
     return {"success": True}
+
+@router.get("/get_live_review_summary/{revid}", response_model=LiveSummarySections)
+def get_reviewlist(revid: str,               
+                db: Session = Depends(get_db),) -> LiveSummarySections:
+    live_summary_sections_from_db = get_live_summary_from_db(db, revid)
+
+    if len(live_summary_sections_from_db) == 0:
+        return LiveSummarySections()
+
+    response_dict = {}
+    for section in live_summary_sections_from_db:
+        section_name = section.section
+        response_dict[section_name] = section.text
+
+    response = LiveSummarySections(
+        background=response_dict["background"],
+        methods=response_dict["methods"],
+        results=response_dict["results"],
+        conclusion=response_dict["conclusion"],
+        automated_narrative_summary=response_dict["automated_narrative_summary"]
+    )
+    return response
 
 @router.post("/upload_csv")
 async def upload_csv(csv_file: UploadFile = File(...)):

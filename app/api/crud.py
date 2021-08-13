@@ -54,10 +54,12 @@ def get_reviewlist_from_db(engine, user_id: str) -> list:
 
     # Including the number of abstracts for each review for the dashboard
     query = f"""
-    SELECT COUNT(1) as num_abstracts_to_screen from manscreen as ms, pubmed as pm,
-            pubmed_annotations as pa, permissions where permissions.revid IN {revids} and permissions.login='{user_id}'
-            and decision is null and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid
-            GROUP BY permissions.revid ORDER BY permissions.revid;
+    select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
+    where permissions.revid=p.revid and p.login='{user_id}' and decision is null
+    and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
+    from permissions
+    where permissions.revid IN {revids}
+    group by permissions.revid order by permissions.revid;
     """
     num_abstracts_to_screen = pd.read_sql_query(query, engine)
     reviewmeta['num_abstracts_to_screen'] = num_abstracts_to_screen
@@ -201,6 +203,9 @@ def autocomplete(q):
         # where we have enough chars, process and get top ranked
         return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
 
+def get_live_summary_from_db(db, revid: str) -> List[LiveSummarySection]:
+    return db.query(LiveSummarySection).filter_by(revid=revid).all()
+
 def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
     try:
 
@@ -224,6 +229,7 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
             LiveSummarySection(section="methods", text=live_summary_sections.methods, revid=review_id),
             LiveSummarySection(section="results", text=live_summary_sections.results, revid=review_id),
             LiveSummarySection(section="conclusion", text=live_summary_sections.conclusion, revid=review_id),
+            LiveSummarySection(section="automated_narrative_summary", text=None, revid=review_id),
         ]
         db.bulk_save_objects(sections)
 
