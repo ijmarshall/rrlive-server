@@ -58,7 +58,7 @@ def get_reviewlist_from_db(engine, user_id: str) -> list:
     reviewmeta = pd.read_sql("select revmeta.revid, revmeta.title, revmeta.last_updated from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid ORDER BY permissions.revid;",
                              engine,
                              params = {"user_id": user_id})
-    revids = "(" + ",".join(["'{}'".format(r.revid) for (i, r) in reviewmeta.iterrows()]) + ")"
+    revids = tuple(r.revid for (i, r) in reviewmeta.iterrows())
 
     # Including the number of abstracts for each review for the dashboard
 
