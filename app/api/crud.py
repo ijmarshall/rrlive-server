@@ -58,7 +58,7 @@ def get_reviewlist_from_db(engine, user_id: str) -> list:
     reviewmeta = pd.read_sql("select revmeta.revid, revmeta.title, revmeta.last_updated from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid ORDER BY permissions.revid;",
                              engine,
                              params = {"user_id": user_id})
-    revids = tuple(r.revid for (i, r) in reviewmeta.iterrows())
+    revids = "(" + ",".join(["'{}'".format(r.revid) for (i, r) in reviewmeta.iterrows()]) + ")"
 
     # Including the number of abstracts for each review for the dashboard
     query = f"""
@@ -171,13 +171,20 @@ def get_cite(authors, journal, year) -> str:
 
 def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
     # update the last updated date    
+    try:
 
-
-    db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
-                        FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
-                        permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
-                        ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
-    db.commit()
+        db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
+                            FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
+                            permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
+                            ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
+        if decision:
+            db.connection().execute("""UPDATE revmeta SET summary_update_needed = %(decision)s
+                                WHERE revmeta.revid=%(revid)s;""",
+                            ({"revid":revid, "decision": decision}))
+        db.commit()
+    except:
+        db.rollback()
+        raise
 
 def autocomplete(q):
     """
