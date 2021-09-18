@@ -61,14 +61,25 @@ def get_reviewlist_from_db(engine, user_id: str) -> list:
     revids = "(" + ",".join(["'{}'".format(r.revid) for (i, r) in reviewmeta.iterrows()]) + ")"
 
     # Including the number of abstracts for each review for the dashboard
-    query = f"""
-    select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
-    where permissions.revid=p.revid and p.login='{user_id}' and decision is null
-    and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
-    from permissions
-    where permissions.revid IN {revids}
-    group by permissions.revid order by permissions.revid;
-    """
+
+    if len(revids) > 1:
+        query = f"""
+        select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
+        where permissions.revid=p.revid and p.login='{user_id}' and decision is null
+        and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
+        from permissions
+        where permissions.revid IN {revids}
+        group by permissions.revid order by permissions.revid;
+        """
+    else:
+        query = f"""
+        select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
+        where permissions.revid=p.revid and p.login='{user_id}' and decision is null
+        and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
+        from permissions
+        where permissions.revid='{revids[0]}'
+        group by permissions.revid order by permissions.revid;
+        """
     num_abstracts_to_screen = pd.read_sql_query(query, engine)
     reviewmeta['num_abstracts_to_screen'] = num_abstracts_to_screen
 
