@@ -16,6 +16,7 @@ import pickle
 # from mailjet_rest import Client
 import os
 from typing import Generator
+from .database import engine
 
 
 # function zoo
