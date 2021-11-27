@@ -22,7 +22,7 @@ class GithubUser(BaseModel):
 
 
 class User(BaseModel):
-    id: int
+    id: int = None
     login: str
     name: Optional[str] = None
     email: Optional[str] = None
@@ -40,6 +40,7 @@ class Review(BaseModel):
     revid: str
     title: str
     last_updated: datetime.datetime
+    num_abstracts_to_screen: int
 
 class ReviewList(BaseModel):
     reviews: List[Review]
@@ -54,7 +55,7 @@ class Article(BaseModel):
     ab: str
     citation: str
     journal: str
-    num_randomized: str
+    num_randomized: str = None
     prob_low_rob: float
     effect: str
     decision: str = None
@@ -91,5 +92,6 @@ class LiveSummarySections(BaseModel):
     methods: Optional[str] = None
     results: Optional[str] = None
     conclusion: Optional[str] = None
+    automated_narrative_summary: Optional[str] = None
 
 

@@ -46,10 +46,43 @@ def create_user(db: Session, github_user: GithubUser) -> User:
     db.refresh(user)
     return user
 
+def update_user(db: Session, user_id: int, new_user_info: User) -> User:
+    user_from_db = db.query(User).filter_by(id=user_id).first()
+    user_from_db.name = new_user_info.name
+    user_from_db.email = new_user_info.email
+    db.commit()
+    db.refresh(user_from_db)
+    return user_from_db
+
 def get_reviewlist_from_db(engine, user_id: str) -> list:
-    reviewmeta = pd.read_sql("select revmeta.* from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid;",
+    reviewmeta = pd.read_sql("select revmeta.revid, revmeta.title, revmeta.last_updated from revmeta, permissions where permissions.login=%(user_id)s and revmeta.revid=permissions.revid ORDER BY permissions.revid;",
                              engine,
                              params = {"user_id": user_id})
+    revids = tuple(r.revid for (i, r) in reviewmeta.iterrows())
+
+    # Including the number of abstracts for each review for the dashboard
+
+    if len(revids) > 1:
+        query = f"""
+        select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
+        where permissions.revid=p.revid and p.login='{user_id}' and decision is null
+        and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
+        from permissions
+        where permissions.revid IN {revids}
+        group by permissions.revid order by permissions.revid;
+        """
+    else:
+        query = f"""
+        select (select count(pm.pmid) from manscreen as ms, pubmed as pm, pubmed_annotations as pa, permissions p
+        where permissions.revid=p.revid and p.login='{user_id}' and decision is null
+        and pm.pmid=ms.pmid and pm.pmid=pa.pmid and permissions.revid=ms.revid) as num_abstracts_to_screen
+        from permissions
+        where permissions.revid='{revids[0]}'
+        group by permissions.revid order by permissions.revid;
+        """
+    num_abstracts_to_screen = pd.read_sql_query(query, engine)
+    reviewmeta['num_abstracts_to_screen'] = num_abstracts_to_screen
+
     return reviewmeta.to_dict('records')
     
 def get_screenlist_from_db(engine, revid: str, user_id: str) -> list:
@@ -149,13 +182,20 @@ def get_cite(authors, journal, year) -> str:
 
 def sumbit_decision_to_db(db: Session, userid, revid, pmid, decision):
     # update the last updated date    
+    try:
 
-
-    db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
-                        FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
-                        permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
-                        ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
-    db.commit()
+        db.connection().execute("""UPDATE manscreen SET decision = %(decision)s, login = %(userid)s 
+                            FROM permissions WHERE manscreen.revid=%(revid)s AND manscreen.pmid=%(pmid)s AND
+                            permissions.login = %(userid)s AND permissions.revid=manscreen.revid;""",
+                            ({"revid":revid, "pmid": pmid,"decision": decision, "userid": userid}))
+        if decision:
+            db.connection().execute("""UPDATE revmeta SET summary_update_needed = %(decision)s
+                                WHERE revmeta.revid=%(revid)s;""",
+                            ({"revid":revid, "decision": decision}))
+        db.commit()
+    except:
+        db.rollback()
+        raise
 
 def autocomplete(q):
     """
@@ -189,6 +229,9 @@ def autocomplete(q):
         # where we have enough chars, process and get top ranked
         return sorted(dedupe(flat_list(matches)), key=lambda x: x['count'], reverse=True)[:max_return]
 
+def get_live_summary_from_db(db, revid: str) -> List[LiveSummarySection]:
+    return db.query(LiveSummarySection).filter_by(revid=revid).all()
+
 def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter: str, live_summary_sections: LiveSummarySections, csv_path: str, user_login: str):
     try:
 
@@ -212,6 +255,7 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
             LiveSummarySection(section="methods", text=live_summary_sections.methods, revid=review_id),
             LiveSummarySection(section="results", text=live_summary_sections.results, revid=review_id),
             LiveSummarySection(section="conclusion", text=live_summary_sections.conclusion, revid=review_id),
+            LiveSummarySection(section="automated_narrative_summary", text=None, revid=review_id),
         ]
         db.bulk_save_objects(sections)
 
