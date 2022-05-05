@@ -140,7 +140,8 @@ def main():
     # *** main loop ***
 
     # this works the second screener.robotreviewer.net needs some tweaking
-    screener_url = "http://summarization.robotreviewer.net:7777/"
+    # tmp testing url screener_url = "http://summarization.robotreviewer.net:7777/"
+    screener_url = screener.robotreviewer.net
     headers = {'Content-Type': 'application/json',
                'Accept': 'application/json'}
 
@@ -178,7 +179,7 @@ def main():
                 row = {
                     'ti': art.ti,
                     'abs': art.ab,  # need to name it 'abs' as this is the way the screener eats it
-                    'label': tmp  # decision # decisions 0/1 include exclude
+                    'label': tmp  # decision # decisions -> 1=include, 0=exclude
                 }
                 data.append(row)
 
