@@ -141,7 +141,7 @@ def main():
 
     # this works the second screener.robotreviewer.net needs some tweaking
     # tmp testing url screener_url = "http://summarization.robotreviewer.net:7777/"
-    screener_url = screener.robotreviewer.net
+    screener_url = screen.robotreviewer.net
     headers = {'Content-Type': 'application/json',
                'Accept': 'application/json'}
 
