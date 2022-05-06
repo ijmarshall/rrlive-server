@@ -5,7 +5,10 @@
 # 2021, December
 #############################
 
-FROM nvidia/cuda:11.4.0-base-ubuntu20.04
+#update nvidia repo keys to use the cuda image
+#FROM nvidia/cuda:11.4.0-base-ubuntu20.04 
+
+FROM ubuntu:20.04
 
 LABEL authors="frank.soboczenski@gmail.com"
 
