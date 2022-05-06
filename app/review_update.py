@@ -1,3 +1,4 @@
+
 #
 #   covid review updating code
 #
@@ -15,13 +16,16 @@ from typing import Counter
 import pickle
 # from mailjet_rest import Client
 import os
+import app
 from typing import Generator
 from .database import engine
 
+screener_url = 'http://screen.robotreviewer.net/'
 
 # function zoo
 # Read pickle data
-with open('strlist_from_cui.pck', 'rb') as f:  # for franks file
+#with open('strlist_from_cui.pck', 'rb') as f:  # for franks file
+with open(os.path.join(app._ROOT, 'strlist_from_cui.pck'), 'rb' ) as f:
     # with open('../trialstreamer/strlist_from_cui.pck', 'rb') as f:
     strlist_from_cui = pickle.load(f)
 
@@ -141,10 +145,10 @@ def main():
 
     # this works the second screener.robotreviewer.net needs some tweaking
     # tmp testing url screener_url = "http://summarization.robotreviewer.net:7777/"
-    screener_url = screen.robotreviewer.net
+    #screener_url = 'screen.robotreviewer.net'
     headers = {'Content-Type': 'application/json',
                'Accept': 'application/json'}
-
+    print("test-keyboarddd malfucntioon")
     revids_to_update_ = engine.execute(
         "select revid from revmeta where not revid='covax' ;").fetchall()
     revids_to_update = [i.revid for i in revids_to_update_]
