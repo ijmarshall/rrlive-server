@@ -94,4 +94,5 @@ class LiveSummarySections(BaseModel):
     conclusion: Optional[str] = None
     automated_narrative_summary: Optional[str] = None
 
-
+class UpdatedSummary(BaseModel):
+    updated_summary: str

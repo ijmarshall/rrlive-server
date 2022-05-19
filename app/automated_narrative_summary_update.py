@@ -12,6 +12,8 @@ from typing import Generator
 from .database import engine
 
 update_summarization_url="http://127.0.0.1:8081/update_summary"
+update_summarization_from_diff_url="http://127.0.0.1:8081/update_summary_from_diff"
+update_diff_url="http://127.0.0.1:8081/update_diff"
 
 def get_api_input_format(original_summary, articles_list):
     # Currently don't have original summary title so will just pass empty string

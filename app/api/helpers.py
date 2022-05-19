@@ -37,3 +37,19 @@ def generate_rev_id(review_title):
 
 def generate_uuid(length):
     return base64.urlsafe_b64encode(os.urandom(16))[:length].decode('utf-8')
+
+
+def get_api_input_format(original_title, original_summary, articles):
+    articles_list = []
+    for art in articles:
+        row = {
+                'title': art.ti,
+                'abstract': art.ab,
+                }
+        articles_list.append(row)
+
+    return {
+        "existing_summary_title": original_title,
+        "existing_summary": original_summary,
+        "articles": articles_list
+    }

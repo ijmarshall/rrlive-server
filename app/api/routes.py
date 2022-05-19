@@ -9,9 +9,9 @@ import io
 from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
-from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections
+from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections, UpdatedSummary
 from .helpers import generate_token, create_access_token, generate_uuid
-from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db, update_user
+from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db, update_user, get_updated_summary
 from .dependencies import get_user_from_header
 from .models import User as DbUser
 from fastapi.encoders import jsonable_encoder
@@ -226,4 +226,13 @@ async def upload_csv(csv_file: UploadFile = File(...)):
     
     return {"name": filename, "path": file_location}
 
-
+@router.get("/get_updated_summary/{revid}", response_model=UpdatedSummary)
+def get_screenlist(revid: str,
+                   user: User = Depends(get_user_from_header),
+                   db: Session = Depends(get_db),
+) -> UpdatedSummary:
+    db_user = get_user(db, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    updated_summary = get_updated_summary(engine, revid)
+    return {"updated_summary": updated_summary}
