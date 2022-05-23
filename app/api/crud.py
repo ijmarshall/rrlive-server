@@ -292,6 +292,9 @@ def get_updated_summary(engine, revid) -> str:
     """Get the updated summary from one edit at a time model - only one edit per call"""
     import requests
     try:
+        # get original summary title
+        original_summary_title = engine.execute("SELECT title FROM revmeta WHERE revid = (%s);", (revid,)).fetchone()[0]
+
         # get original summary
         original_summary = engine.execute("SELECT text FROM live_abstracts WHERE revid=(%s) and section='conclusion';", (revid,)).fetchone()[0]
         
@@ -299,12 +302,13 @@ def get_updated_summary(engine, revid) -> str:
         articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid;").fetchall()
         
         # format for API input
-        input_data = get_api_input_format(original_summary, articles) 
+        input_data = get_api_input_format(original_summary_title, original_summary, articles) 
+
         # call the API   
         headers = {'Content-Type': 'application/json', 'Accept':'application/json'}
         update_summarization_url="http://127.0.0.1:8081/update_summary_from_diff"
         response = requests.post(update_summarization_url, json=input_data, headers=headers)
-        
+
         # update automated narrative
         engine.execute(f"UPDATE live_abstracts SET text = '{response.update_summary}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")
         return response.updated_summary
