@@ -308,9 +308,11 @@ def get_updated_summary(engine, revid) -> str:
         headers = {'Content-Type': 'application/json', 'Accept':'application/json'}
         update_summarization_url="http://127.0.0.1:8081/update_summary_from_diff"
         response = requests.post(update_summarization_url, json=input_data, headers=headers)
+        response_json = response.json()
+        print(response_json)
 
         # update automated narrative
-        engine.execute(f"UPDATE live_abstracts SET text = '{response.update_summary}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")
-        return response.updated_summary
+        engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")
+        return response_json['updated_summary']
     except:
         raise
