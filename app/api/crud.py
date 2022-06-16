@@ -316,3 +316,14 @@ def get_updated_summary(engine, revid) -> str:
         return response_json['updated_summary']
     except:
         raise
+
+def update_live_summary_conclusion(db: Session, revid, conclusion):
+    # update the conclusion for given revid
+    try:
+        db.connection().execute("""UPDATE live_abstracts SET text = %(conclusion)s
+                            live_abstracts.section = 'conclusion' AND live_abstracts.revid = %(revid)s;""",
+                            ({"revid":revid, "conclusion": conclusion}))
+        db.commit()
+    except:
+        db.rollback()
+        raise

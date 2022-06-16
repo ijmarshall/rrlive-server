@@ -96,3 +96,7 @@ class LiveSummarySections(BaseModel):
 
 class UpdatedSummary(BaseModel):
     updated_summary: str
+
+class LiveSummaryConclusion(BaseModel):
+    revid: str
+    conclusion: str

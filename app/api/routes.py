@@ -9,7 +9,7 @@ import io
 from sqlalchemy.orm import Session
 from app.settings import settings
 from app.database import get_db, SQLBase, engine
-from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections, UpdatedSummary
+from .schemas import Url, AuthorizationResponse, GithubUser, User, Token, ReviewList, ArticleList, ScreeningDecision, LiveSummaryData, LiveSummarySections, UpdatedSummary, LiveSummaryConclusion
 from .helpers import generate_token, create_access_token, generate_uuid
 from .crud import get_user_by_login, create_user, get_user, get_reviewlist_from_db, get_screenlist_from_db, sumbit_decision_to_db, get_review_status_text, get_review_included_studies_df, generate_summary_of_new_evidence, autocomplete, submit_live_summary_to_db, get_live_summary_from_db, update_user, get_updated_summary
 from .dependencies import get_user_from_header
@@ -129,11 +129,11 @@ def update_abstract(
 def get_generated_summary(
                revid: str,               
                db: Session = Depends(get_db),):    
-    #update_text = get_review_status_text(db, revid)
-    #return update_text
+    update_text = get_review_status_text(db, revid)
+    return update_text
     #import pdb; pdb.set_trace()
-    summary = generate_summary_of_new_evidence(db, revid)
-    return summary
+    # summary = generate_summary_of_new_evidence(db, revid)
+    # return summary
 
 
 
@@ -214,6 +214,19 @@ def update_user_information(
                 db: Session = Depends(get_db),):
     updated_user = update_user(db, user.id, new_user_info)
     return {"success": True, "user": updated_user}
+
+
+@router.post("/update_live_summary_conclusion")
+async def update_live_summary_conclusion(
+                live_summary_conclusion: LiveSummaryConclusion,
+                user: User = Depends(get_user_from_header),
+                db: Session = Depends(get_db),):
+    print(user)
+    db_user = get_user(db, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")    
+    update_live_summary_conclusion(db, live_summary_conclusion.revid, live_summary_conclusion.conclusion)
+    return {"success": True}
 
 
 @router.post("/upload_csv")
