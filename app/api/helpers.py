@@ -10,6 +10,8 @@ from app.settings import settings
 
 from .schemas import User
 
+from word2number import w2n
+
 
 def generate_token(length: int = 24) -> str:
     return "".join(

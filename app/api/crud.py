@@ -288,10 +288,11 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
         db.rollback()
         raise
 
-def get_updated_summary(engine, revid) -> str:
+def get_updated_summary(engine, revid, num_edits) -> str:
     """Get the updated summary from one edit at a time model - only one edit per call"""
     import requests
     try:
+        
         # get original summary title
         original_summary_title = engine.execute("SELECT title FROM revmeta WHERE revid = (%s);", (revid,)).fetchone()[0]
 
@@ -307,9 +308,25 @@ def get_updated_summary(engine, revid) -> str:
         # call the API   
         headers = {'Content-Type': 'application/json', 'Accept':'application/json'}
         update_summarization_url="http://127.0.0.1:8081/update_summary_from_diff"
-        response = requests.post(update_summarization_url, json=input_data, headers=headers)
-        response_json = response.json()
-        print(response_json)
+
+        while num_edits > 0:
+
+            response = requests.post(update_summarization_url, json=input_data, headers=headers)
+            response_json = response.json()
+            print(response_json)
+
+            try:
+                predicted_summary_with_applied_diff = response_json['updated_summary']
+                new_orig_summary = predicted_summary_with_applied_diff
+                
+                input_data = get_api_input_format(original_summary_title, new_orig_summary, articles)
+            except:
+                predicted_summary_with_applied_diff = ""
+                print("stopping generating diffs due exceptions")
+                raise
+
+            # decrement counter
+            num_edits -= 1
 
         # update automated narrative
         engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")

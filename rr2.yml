@@ -1,5 +1,6 @@
 name: rr2
 channels:
+  - conda-forge
   - anaconda
   - defaults
 dependencies:
@@ -61,6 +62,7 @@ dependencies:
   - urllib3=1.26.4=pyhd3eb1b0_0
   - wcwidth=0.2.5=py_0
   - wheel=0.36.2=pyhd3eb1b0_0
+  - word2number=1.1=py_0
   - xz=5.2.5=h1de35cc_0
   - zeromq=4.3.3=hb1e8313_3
   - zipp=3.4.1=pyhd3eb1b0_0

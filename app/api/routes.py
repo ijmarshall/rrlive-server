@@ -241,11 +241,12 @@ async def upload_csv(csv_file: UploadFile = File(...)):
 
 @router.get("/get_updated_summary/{revid}", response_model=UpdatedSummary)
 def get_screenlist(revid: str,
+                   num_edits: int,
                    user: User = Depends(get_user_from_header),
                    db: Session = Depends(get_db),
 ) -> UpdatedSummary:
     db_user = get_user(db, user.id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    updated_summary = get_updated_summary(engine, revid)
+    updated_summary = get_updated_summary(engine, revid, num_edits)
     return {"updated_summary": updated_summary}
