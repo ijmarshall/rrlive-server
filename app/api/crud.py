@@ -297,10 +297,17 @@ def get_updated_summary(engine, revid, num_edits) -> str:
         original_summary_title = engine.execute("SELECT title FROM revmeta WHERE revid = (%s);", (revid,)).fetchone()[0]
 
         # get original summary
-        original_summary = engine.execute("SELECT text FROM live_abstracts WHERE revid=(%s) and section='conclusion';", (revid,)).fetchone()[0]
+        original_summary_data = engine.execute("SELECT text, last_updated FROM live_abstracts WHERE revid=(%s) and section='conclusion';", (revid,)).fetchone()
+        original_summary = original_summary_data[0]
+        original_summary_last_updated = original_summary_data[1]
         
         # get articles
-        articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid;").fetchall()
+        # ALTER TABLE live_abstracts ADD COLUMN last_updated TIMESTAMP;
+        # ALTER TABLE live_abstracts ALTER COLUMN last_updated SET DEFAULT now();
+        if original_summary_last_updated == None:
+            articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid;").fetchall()
+        else:
+            articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid AND pm.update_date>'{original_summary_last_updated}';").fetchall()
         
         # format for API input
         input_data = get_api_input_format(original_summary_title, original_summary, articles) 
@@ -329,7 +336,7 @@ def get_updated_summary(engine, revid, num_edits) -> str:
             num_edits -= 1
 
         # update automated narrative
-        engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")
+        engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}', last_updated = now() WHERE revid = '{revid}' AND section='automated_narrative_summary'")
         return response_json['updated_summary']
     except:
         raise
@@ -337,7 +344,7 @@ def get_updated_summary(engine, revid, num_edits) -> str:
 def update_live_summary_conclusion(db: Session, revid, conclusion):
     # update the conclusion for given revid
     try:
-        db.connection().execute("""UPDATE live_abstracts SET text = %(conclusion)s
+        db.connection().execute("""UPDATE live_abstracts SET text = %(conclusion)s, last_updated = now()
                             live_abstracts.section = 'conclusion' AND live_abstracts.revid = %(revid)s;""",
                             ({"revid":revid, "conclusion": conclusion}))
         db.commit()

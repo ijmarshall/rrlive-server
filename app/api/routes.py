@@ -197,12 +197,15 @@ def get_reviewlist(revid: str,
     for section in live_summary_sections_from_db:
         section_name = section.section
         response_dict[section_name] = section.text
+        if section_name == "conclusion":
+            response_dict["conclusion_last_update"] = section.last_updated
 
     response = LiveSummarySections(
         background=response_dict["background"],
         methods=response_dict["methods"],
         results=response_dict["results"],
         conclusion=response_dict["conclusion"],
+        conclusion_last_update=response_dict["conclusion_last_update"],
         automated_narrative_summary=response_dict["automated_narrative_summary"]
     )
     return response

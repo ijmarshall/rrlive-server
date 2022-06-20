@@ -92,6 +92,7 @@ class LiveSummarySections(BaseModel):
     methods: Optional[str] = None
     results: Optional[str] = None
     conclusion: Optional[str] = None
+    conclusion_last_update: Optional[str] = None
     automated_narrative_summary: Optional[str] = None
 
 class UpdatedSummary(BaseModel):
