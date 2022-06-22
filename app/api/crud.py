@@ -288,18 +288,26 @@ def submit_live_summary_to_db(db: Session, title: str, date: str, keyword_filter
         db.rollback()
         raise
 
-def get_updated_summary(engine, revid) -> str:
+def get_updated_summary(engine, revid, num_edits) -> str:
     """Get the updated summary from one edit at a time model - only one edit per call"""
     import requests
     try:
+        
         # get original summary title
         original_summary_title = engine.execute("SELECT title FROM revmeta WHERE revid = (%s);", (revid,)).fetchone()[0]
 
         # get original summary
-        original_summary = engine.execute("SELECT text FROM live_abstracts WHERE revid=(%s) and section='conclusion';", (revid,)).fetchone()[0]
+        original_summary_data = engine.execute("SELECT text, last_updated FROM live_abstracts WHERE revid=(%s) and section='conclusion';", (revid,)).fetchone()
+        original_summary = original_summary_data[0]
+        original_summary_last_updated = original_summary_data[1]
         
         # get articles
-        articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid;").fetchall()
+        # ALTER TABLE live_abstracts ADD COLUMN last_updated TIMESTAMP;
+        # ALTER TABLE live_abstracts ALTER COLUMN last_updated SET DEFAULT now();
+        if original_summary_last_updated == None:
+            articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid;").fetchall()
+        else:
+            articles = engine.execute(f"SELECT pm.ti, pm.ab FROM pubmed AS pm, manscreen AS ms WHERE ms.revid='{revid}' AND ms.decision=true AND pm.pmid=ms.pmid AND pm.update_date>'{original_summary_last_updated}';").fetchall()
         
         # format for API input
         input_data = get_api_input_format(original_summary_title, original_summary, articles) 
@@ -307,12 +315,39 @@ def get_updated_summary(engine, revid) -> str:
         # call the API   
         headers = {'Content-Type': 'application/json', 'Accept':'application/json'}
         update_summarization_url="http://127.0.0.1:8081/update_summary_from_diff"
-        response = requests.post(update_summarization_url, json=input_data, headers=headers)
-        response_json = response.json()
-        print(response_json)
+
+        while num_edits > 0:
+
+            response = requests.post(update_summarization_url, json=input_data, headers=headers)
+            response_json = response.json()
+            print(response_json)
+
+            try:
+                predicted_summary_with_applied_diff = response_json['updated_summary']
+                new_orig_summary = predicted_summary_with_applied_diff
+                
+                input_data = get_api_input_format(original_summary_title, new_orig_summary, articles)
+            except:
+                predicted_summary_with_applied_diff = ""
+                print("stopping generating diffs due exceptions")
+                raise
+
+            # decrement counter
+            num_edits -= 1
 
         # update automated narrative
-        engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}' WHERE revid = '{revid}' AND section='automated_narrative_summary'")
+        engine.execute(f"UPDATE live_abstracts SET text = '{response_json['updated_summary']}', last_updated = now() WHERE revid = '{revid}' AND section='automated_narrative_summary'")
         return response_json['updated_summary']
     except:
+        raise
+
+def update_live_summary_conclusion(db: Session, revid, conclusion):
+    # update the conclusion for given revid
+    try:
+        db.connection().execute("""UPDATE live_abstracts SET text = %(conclusion)s, last_updated = now()
+                            live_abstracts.section = 'conclusion' AND live_abstracts.revid = %(revid)s;""",
+                            ({"revid":revid, "conclusion": conclusion}))
+        db.commit()
+    except:
+        db.rollback()
         raise

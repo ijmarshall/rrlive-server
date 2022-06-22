@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, TIMESTAMP
 
 from app.database import Base
 
@@ -30,6 +30,7 @@ class LiveSummarySection(Base):
     section = Column(String)
     text = Column(String)
     revid = Column(String)
+    last_updated = Column(TIMESTAMP)
 
 class InitScreenRecord(Base):
     __tablename__ = "init_screen"
