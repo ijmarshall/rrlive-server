@@ -10,7 +10,6 @@ from app.settings import settings
 
 from .schemas import User
 
-
 def generate_token(length: int = 24) -> str:
     return "".join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(length)
