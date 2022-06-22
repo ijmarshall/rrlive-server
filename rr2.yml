@@ -1,6 +1,5 @@
 name: rr2
 channels:
-  - conda-forge
   - anaconda
   - defaults
 dependencies:
